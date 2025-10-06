@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Menu, Settings, ChevronRight, MoreVertical, Filter, BarChart3, Cpu, Users, Building2, MapPin, Truck, MessageSquare, Star } from 'lucide-react';
+import {
+  Menu, Settings, Sun, Pickaxe, ChevronRight, MoreVertical, Filter, BarChart3, Cpu, Users, Building2, MapPin, Truck, MessageSquare, Star
+} from 'lucide-react';
 
-export default function BlynkConsole() {
+export default function BlynkConsole({ onNavigate }) {
   const [activeTab, setActiveTab] = useState('1d');
   
   return (
@@ -22,14 +24,21 @@ export default function BlynkConsole() {
         <nav className="flex-1 p-3 space-y-1">
           <NavItem icon={<Star size={18} />} label="Get Started" />
           <NavItem icon={<BarChart3 size={18} />} label="Dashboards" active />
-          <NavItem icon={<ChevronRight size={18} />} label="Developer Zone" hasSubmenu />
+          <NavItem icon={<Pickaxe size={18} />} label="Developer Zone" hasSubmenu />
+
           <div className="pt-4">
-            <NavItem icon={<Cpu size={18} />} label="Devices" />
-            <NavItem icon={<Settings size={18} />} label="Automations" />
+            {/* ✅ Navigasi ke halaman Devices */}
+            <NavItem
+              icon={<Cpu size={18} />}
+              label="Devices"
+              onClick={() => onNavigate && onNavigate('devices')}
+            />
+            <NavItem icon={<Sun size={18} />} label="Automations" />
             <NavItem icon={<Users size={18} />} label="Users" />
             <NavItem icon={<Building2 size={18} />} label="Organizations" />
             <NavItem icon={<MapPin size={18} />} label="Locations" />
           </div>
+
           <div className="pt-4">
             <NavItem icon={<Truck size={18} />} label="Fleet Management" hasSubmenu />
             <NavItem icon={<MessageSquare size={18} />} label="In-App Messaging" />
@@ -159,9 +168,10 @@ export default function BlynkConsole() {
   );
 }
 
-function NavItem({ icon, label, active, hasSubmenu }) {
+function NavItem({ icon, label, active, hasSubmenu, onClick }) {
   return (
     <div
+      onClick={onClick}
       className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${
         active
           ? 'bg-teal-50 text-teal-600'
