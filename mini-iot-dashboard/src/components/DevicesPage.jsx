@@ -95,7 +95,7 @@ export default function DevicesPage({ onBack }) {
       className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
     >
       <Plus size={20} />
-      New Device
+      Create Device
     </button>
   </div>
 </div>

@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Menu, Settings, Sun, Pickaxe, ChevronRight, MoreVertical, Filter, BarChart3, Cpu, Users, Building2, MapPin, Truck, MessageSquare, Star
-} from 'lucide-react';
+import { Menu, Settings, ChevronRight, MoreVertical, Filter, BarChart3, Cpu, Users, Building2, MapPin, Truck, MessageSquare, Star } from 'lucide-react';
 
 export default function BlynkConsole({ onNavigate }) {
   const [activeTab, setActiveTab] = useState('1d');
@@ -9,7 +7,7 @@ export default function BlynkConsole({ onNavigate }) {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className="w-56 bg-white border-r border-gray-200 flex flex-col">
+      <div className="w-56 bg-white border-r border-gray-2;00 flex flex-col">
         {/* Logo */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
@@ -24,21 +22,14 @@ export default function BlynkConsole({ onNavigate }) {
         <nav className="flex-1 p-3 space-y-1">
           <NavItem icon={<Star size={18} />} label="Get Started" />
           <NavItem icon={<BarChart3 size={18} />} label="Dashboards" active />
-          <NavItem icon={<Pickaxe size={18} />} label="Developer Zone" hasSubmenu />
-
+          <NavItem icon={<ChevronRight size={18} />} label="Developer Zone" hasSubmenu />
           <div className="pt-4">
-            {/* ✅ Navigasi ke halaman Devices */}
-            <NavItem
-              icon={<Cpu size={18} />}
-              label="Devices"
-              onClick={() => onNavigate && onNavigate('devices')}
-            />
-            <NavItem icon={<Sun size={18} />} label="Automations" />
+            <NavItem icon={<Cpu size={18} />} label="Devices" onClick={() => onNavigate && onNavigate('devices')} />
+            <NavItem icon={<Settings size={18} />} label="Automations" />
             <NavItem icon={<Users size={18} />} label="Users" />
             <NavItem icon={<Building2 size={18} />} label="Organizations" />
             <NavItem icon={<MapPin size={18} />} label="Locations" />
           </div>
-
           <div className="pt-4">
             <NavItem icon={<Truck size={18} />} label="Fleet Management" hasSubmenu />
             <NavItem icon={<MessageSquare size={18} />} label="In-App Messaging" />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import BlynkConsole from './components/BlynkConsole';
+import BlynkConsole from './components/ConsoleBlynk';
 import DashboardEditor from './components/DashboardEditor';
 import DevicesPage from './components/DevicesPage';
 
