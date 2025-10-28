@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Menu, Settings, ChevronRight, Search, Plus, Star, BarChart3, Code, Cpu, Users, Building2, MapPin, Truck, MessageSquare, Zap, QrCode, Key, Gauge, Webhook, Puzzle, X, ChevronDown } from 'lucide-react';
 
 const SUPABASE_URL = 'https://fcfpyeyakkziebvoukzs.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjZnB5ZXlha2t6aWVidm91a3pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1OTc2NzMsImV4cCI6MjA3NjE3MzY3M30.UDcM7WQu1tpGL-nkpjwskk78Txz872DIG0H-zwU2NHg';
 
 export default function BlynkTemplates({ onNavigate }) {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [templates, setTemplates] = useState([]);
@@ -127,11 +129,22 @@ export default function BlynkTemplates({ onNavigate }) {
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           <NavItem icon={<Star size={18} />} label="Get Started" />
-          <NavItem icon={<BarChart3 size={18} />} label="Dashboards" />
+          <NavItem 
+            icon={<BarChart3 size={18} />} 
+            label="Dashboards" 
+            onClick={() => navigate('/dashboard')}
+          />
           <NavItem icon={<Code size={18} />} label="Developer Zone" active hasSubmenu />
           
           <div className="pt-4">
-            <NavItem icon={<Cpu size={18} />} label="Devices" onClick={() => onNavigate && onNavigate('devices')} />
+            <NavItem 
+              icon={<Cpu size={18} />} 
+              label="Devices" 
+              onClick={() => {
+                if (onNavigate) onNavigate('devices');
+                navigate('/devices');
+              }} 
+            />
             <NavItem icon={<Settings size={18} />} label="Automations" />
             <NavItem icon={<Users size={18} />} label="Users" />
             <NavItem icon={<Building2 size={18} />} label="Organizations" />
@@ -429,9 +442,14 @@ function DeveloperNavItem({ icon, label, active }) {
   );
 }
 
-function TemplateCard({ title, devices, icon, color, hasImage }) {
+function TemplateCard({ id, title, devices, icon, color, hasImage }) {
+  const navigate = useNavigate();
+  
   return (
-    <div className="bg-white rounded-lg overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer">
+    <div 
+      onClick={() => navigate(`/templates/${id}`)}
+      className="bg-white rounded-lg overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
+    >
       <div className={`h-32 bg-gradient-to-br ${color} flex items-center justify-center relative`}>
         {hasImage ? (
           <div className="text-6xl">🌤️</div>
@@ -445,4 +463,4 @@ function TemplateCard({ title, devices, icon, color, hasImage }) {
       </div>
     </div>
   );
-} 
+}
