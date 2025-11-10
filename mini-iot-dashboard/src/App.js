@@ -3,12 +3,13 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import BlynkConsole from "./components/ConsoleBlynk.jsx";
 import DashboardEditor from "./components/DashboardEditor.jsx";
 import EditDashboard from "./components/EditDashboard.jsx";
-import DevicesList from "./pages/DeviceList.jsx";
+import BlynkDevicePage from "./pages/BlynkDevicePage.jsx"
 import DeviceDashboard from "./pages/DeviceDashboard.jsx";
-import AddDevice from "./pages/AddDevice.jsx";
+import AddDevice from "./pages/addDevice.jsx";
 import TemplateList from "./pages/TemplateList.jsx";
 import AddTemplate from "./pages/AddTemplate.jsx";
 import TemplateDetail from "./pages/TemplateDetail.jsx";
+
 
 function App() {
   return (
@@ -24,7 +25,7 @@ function App() {
         <Route path="/editor" element={<DashboardEditor />} />
         
         {/* Daftar Device */}
-        <Route path="/devices" element={<DevicesList />} />
+        <Route path="/devices" element={<BlynkDevicePage />} />
 
         {/* Device Dashboard */}
         <Route path="/devices/:deviceEui" element={<DeviceDashboard />} />
