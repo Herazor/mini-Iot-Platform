@@ -5,6 +5,7 @@ import DashboardEditor from "./components/DashboardEditor.jsx";
 import EditDashboard from "./components/EditDashboard.jsx";
 import BlynkDevicePage from "./pages/BlynkDevicePage.jsx"
 import DeviceDashboard from "./pages/DeviceDashboard.jsx";
+import DeviceDetail from "./pages/DeviceDetail.jsx";  // ← TAMBAHKAN INI
 import AddDevice from "./pages/addDevice.jsx";
 import TemplateList from "./pages/TemplateList.jsx";
 import AddTemplate from "./pages/AddTemplate.jsx";
@@ -27,8 +28,11 @@ function App() {
         {/* Daftar Device */}
         <Route path="/devices" element={<BlynkDevicePage />} />
 
-        {/* Device Dashboard */}
-        <Route path="/devices/:deviceEui" element={<DeviceDashboard />} />
+        {/* Device Detail - TAMBAHKAN ROUTE INI */}
+        <Route path="/devices/:deviceId" element={<DeviceDetail />} />
+
+        {/* Device Dashboard (yang lama, bisa dihapus atau rename) */}
+        <Route path="/devices/dashboard/:deviceEui" element={<DeviceDashboard />} />
 
         {/* Halaman untuk Menambah Device */}
         <Route path="/addDevice" element={<AddDevice />} />
