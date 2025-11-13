@@ -6,7 +6,7 @@ import {
   ArrowLeft, Activity, Thermometer, Droplets, Gauge, Wifi, WifiOff,
   Edit2, Save, X
 } from 'lucide-react';
-import { supabase } from '../config/supabase';
+import { supabase, saveDeviceData } from '../config/supabase';
 import mqttClient from '../mqtt/mqttClient';
 
 export default function DeviceDetail() {
@@ -90,7 +90,7 @@ export default function DeviceDetail() {
     mqttClient.on('message', handleMqttMessage);
   };
 
-  const handleMqttMessage = (topic, message) => {
+  const handleMqttMessage = async (topic, message) => {
     try {
       if (topic !== mqttTopicRef.current) return;
 
@@ -104,11 +104,12 @@ export default function DeviceDetail() {
         created_at: new Date().toISOString()
       };
 
-      // Parse pins dari payload - UNIVERSAL untuk semua format
-      if (payload.pins) {
-        // Format MiniIoT: { pins: { V0: 25.3, V1: 65.2 } }
+      // Parse HANYA dari payload.pins - Hanya nama Virtual Pin (V0, V1, V2, dst)
+      if (payload.pins && typeof payload.pins === 'object') {
         Object.keys(payload.pins).forEach(pin => {
           const value = parseFloat(payload.pins[pin]);
+          
+          // Hanya terima angka valid
           if (!isNaN(value)) {
             newData.pins[pin] = value;
             
@@ -117,7 +118,7 @@ export default function DeviceDetail() {
               setPinConfig(prev => ({
                 ...prev,
                 [pin]: {
-                  label: pin,
+                  label: pin, // Default label = nama pin
                   unit: '',
                   icon: 'Activity',
                   color: 'blue',
@@ -127,34 +128,26 @@ export default function DeviceDetail() {
             }
           }
         });
-      } else {
-        // Format direct: { temperature: 25.3, humidity: 65.2 }
-        Object.keys(payload).forEach(key => {
-          if (key !== 'timestamp' && key !== 'deviceEui' && key !== 'device_eui') {
-            const value = parseFloat(payload[key]);
-            if (!isNaN(value)) {
-              newData.pins[key] = value;
-              
-              // Auto-create pin config
-              if (!pinConfig[key]) {
-                setPinConfig(prev => ({
-                  ...prev,
-                  [key]: {
-                    label: key,
-                    unit: '',
-                    icon: 'Activity',
-                    color: 'blue',
-                    visible: true
-                  }
-                }));
-              }
-            }
-          }
-        });
       }
 
-      setLatestData(newData);
-      setDeviceData(prevData => [newData, ...prevData.slice(0, 49)]);
+      // Hanya save jika ada data pins
+      if (Object.keys(newData.pins).length > 0) {
+        // 💾 SAVE TO SUPABASE
+        const saveResult = await saveDeviceData(deviceKeyRef.current, newData.pins);
+        
+        if (saveResult.success) {
+          console.log('✅ Data saved to Supabase:', saveResult.data);
+          newData.id = saveResult.data.id;
+          newData.created_at = saveResult.data.created_at;
+        } else {
+          console.error('❌ Failed to save to Supabase:', saveResult.error);
+        }
+
+        setLatestData(newData);
+        setDeviceData(prevData => [newData, ...prevData.slice(0, 49)]);
+      } else {
+        console.warn('⚠️ No valid pin data in payload');
+      }
 
     } catch (error) {
       console.error('❌ Error parsing MQTT message:', error);
