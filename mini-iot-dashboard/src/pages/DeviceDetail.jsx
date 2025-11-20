@@ -17,6 +17,7 @@ export default function DeviceDetail() {
   const [latestData, setLatestData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [mqttConnected, setMqttConnected] = useState(false);
+  const [deviceOnline, setDeviceOnline] = useState(false); // NEW: Track device online status
   const [showPinConfig, setShowPinConfig] = useState(false);
   
   // Pin Configuration - Default kosong, akan auto-detect dari data MQTT
@@ -25,6 +26,8 @@ export default function DeviceDetail() {
   
   const deviceKeyRef = useRef(null);
   const mqttTopicRef = useRef(null);
+  const lastDataTimeRef = useRef(null); // NEW: Track last data received time
+  const offlineCheckIntervalRef = useRef(null); // NEW: Interval for checking offline status
 
   useEffect(() => {
     fetchDeviceInfo();
@@ -40,9 +43,32 @@ export default function DeviceDetail() {
     
     checkMqttStatus();
 
+    // NEW: Check device online status every 3 seconds (lebih cepat)
+    offlineCheckIntervalRef.current = setInterval(() => {
+      if (lastDataTimeRef.current) {
+        const timeSinceLastData = Date.now() - lastDataTimeRef.current;
+        const OFFLINE_THRESHOLD = 30000; // 30 seconds
+        
+        const isOnline = timeSinceLastData < OFFLINE_THRESHOLD;
+        
+        // Update state jika status berubah
+        setDeviceOnline(prevOnline => {
+          if (prevOnline !== isOnline) {
+            console.log(`📡 Device status changed: ${isOnline ? 'ONLINE' : 'OFFLINE'}`);
+          }
+          return isOnline;
+        });
+      } else {
+        setDeviceOnline(false);
+      }
+    }, 3000); // Check setiap 3 detik
+
     return () => {
       if (mqttTopicRef.current) {
         mqttClient.unsubscribe(mqttTopicRef.current);
+      }
+      if (offlineCheckIntervalRef.current) {
+        clearInterval(offlineCheckIntervalRef.current);
       }
     };
   }, [deviceId]);
@@ -97,6 +123,13 @@ export default function DeviceDetail() {
       const payload = JSON.parse(message.toString());
       console.log('📨 MQTT Data received:', payload);
 
+      // Update last data time - PENTING untuk deteksi offline
+      const currentTime = Date.now();
+      lastDataTimeRef.current = currentTime;
+      
+      // Set online immediately
+      setDeviceOnline(true);
+
       const newData = {
         id: Date.now(),
         device_key: deviceKeyRef.current,
@@ -104,21 +137,18 @@ export default function DeviceDetail() {
         created_at: new Date().toISOString()
       };
 
-      // Parse HANYA dari payload.pins - Hanya nama Virtual Pin (V0, V1, V2, dst)
       if (payload.pins && typeof payload.pins === 'object') {
         Object.keys(payload.pins).forEach(pin => {
           const value = parseFloat(payload.pins[pin]);
           
-          // Hanya terima angka valid
           if (!isNaN(value)) {
             newData.pins[pin] = value;
             
-            // Auto-create pin config jika belum ada
             if (!pinConfig[pin]) {
               setPinConfig(prev => ({
                 ...prev,
                 [pin]: {
-                  label: pin, // Default label = nama pin
+                  label: pin,
                   unit: '',
                   icon: 'Activity',
                   color: 'blue',
@@ -130,9 +160,7 @@ export default function DeviceDetail() {
         });
       }
 
-      // Hanya save jika ada data pins
       if (Object.keys(newData.pins).length > 0) {
-        // 💾 SAVE TO SUPABASE
         const saveResult = await saveDeviceData(deviceKeyRef.current, newData.pins);
         
         if (saveResult.success) {
@@ -175,12 +203,49 @@ export default function DeviceDetail() {
 
       if (error) throw error;
       
-      setDeviceData(data || []);
       if (data && data.length > 0) {
+        setDeviceData(data);
         setLatestData(data[0]);
+        
+        // Check if latest data is recent (within last 30 seconds)
+        const latestTimestamp = new Date(data[0].created_at).getTime();
+        const timeSinceLastData = Date.now() - latestTimestamp;
+        const OFFLINE_THRESHOLD = 30000; // 30 seconds
+        
+        if (timeSinceLastData < OFFLINE_THRESHOLD) {
+          setDeviceOnline(true);
+          lastDataTimeRef.current = latestTimestamp;
+        } else {
+          setDeviceOnline(false);
+        }
+
+        // Auto-detect pins from database data
+        if (data[0].pins) {
+          Object.keys(data[0].pins).forEach(pin => {
+            if (!pinConfig[pin]) {
+              setPinConfig(prev => ({
+                ...prev,
+                [pin]: {
+                  label: pin,
+                  unit: '',
+                  icon: 'Activity',
+                  color: 'blue',
+                  visible: true
+                }
+              }));
+            }
+          });
+        }
+      } else {
+        setDeviceData([]);
+        setLatestData(null);
+        setDeviceOnline(false);
       }
     } catch (error) {
       console.error('Error fetching device data:', error);
+      setDeviceData([]);
+      setLatestData(null);
+      setDeviceOnline(false);
     } finally {
       setLoading(false);
     }
@@ -376,12 +441,12 @@ export default function DeviceDetail() {
                   Configure Pins
                 </button>
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                  mqttConnected && latestData ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  deviceOnline ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                 }`}>
                   <span className={`w-2 h-2 rounded-full mr-2 ${
-                    mqttConnected && latestData ? 'bg-green-500' : 'bg-gray-500'
-                  } ${mqttConnected && latestData ? 'animate-pulse' : ''}`}></span>
-                  {mqttConnected && latestData ? 'Live Data' : 'Offline'}
+                    deviceOnline ? 'bg-green-500' : 'bg-gray-500'
+                  } ${deviceOnline ? 'animate-pulse' : ''}`}></span>
+                  {deviceOnline ? 'Online' : 'Offline'}
                 </span>
               </div>
             </div>
@@ -419,7 +484,7 @@ export default function DeviceDetail() {
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-800">Recent Data</h2>
-                {mqttConnected && (
+                {deviceOnline && latestData && (
                   <span className="text-sm text-green-600 flex items-center gap-2">
                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                     Real-time updates
@@ -427,14 +492,9 @@ export default function DeviceDetail() {
                 )}
               </div>
               
-              {loading && deviceData.length === 0 ? (
+              {loading ? (
                 <div className="flex justify-center items-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500"></div>
-                </div>
-              ) : deviceData.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">No data received yet</p>
-                  <p className="text-sm text-gray-400 mt-2">Upload code to ESP32 to start sending data</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -452,20 +512,36 @@ export default function DeviceDetail() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {deviceData.map((data) => (
-                        <tr key={data.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {formatDate(data.created_at)}
+                      {deviceData.length === 0 ? (
+                        <tr>
+                          <td colSpan={Math.max(visiblePins.length + 1, 2)} className="px-6 py-12 text-center">
+                            <div className="flex flex-col items-center gap-3">
+                              <WifiOff size={48} className="text-gray-300" />
+                              <p className="text-gray-500 font-medium">No Data Available</p>
+                              <p className="text-sm text-gray-400">
+                                {mqttConnected 
+                                  ? 'Waiting for device to send data...' 
+                                  : 'MQTT connection is not active. Check your device and network.'}
+                              </p>
+                            </div>
                           </td>
-                          {visiblePins.map(pin => (
-                            <td key={pin} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {data.pins && data.pins[pin] !== undefined 
-                                ? formatValue(data.pins[pin])
-                                : '-'}
-                            </td>
-                          ))}
                         </tr>
-                      ))}
+                      ) : (
+                        deviceData.map((data) => (
+                          <tr key={data.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {formatDate(data.created_at)}
+                            </td>
+                            {visiblePins.map(pin => (
+                              <td key={pin} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {data.pins && data.pins[pin] !== undefined 
+                                  ? formatValue(data.pins[pin])
+                                  : '-'}
+                              </td>
+                            ))}
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
